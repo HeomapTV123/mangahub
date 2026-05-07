@@ -1,3 +1,9 @@
 package main
 
-func main() {}
+import (
+	internalgrpc "mangahub/internal/grpc"
+)
+
+func main() {
+	internalgrpc.StartGRPCServer()
+}

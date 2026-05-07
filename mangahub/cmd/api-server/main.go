@@ -4,13 +4,17 @@ import (
 	"log"
 
 	"mangahub/internal/auth"
+	grpc "mangahub/internal/gRPC"
 	mangaFeature "mangahub/internal/manga"
 	"mangahub/internal/tcp"
+	"mangahub/internal/udp"
 	userFeature "mangahub/internal/user"
+	ws "mangahub/internal/websocket"
 	"mangahub/pkg/database"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 )
 
 func main() {
@@ -48,7 +52,15 @@ func main() {
 	userRepo := userFeature.NewRepository(db)
 	userService := userFeature.NewService(userRepo)
 	userHandler := userFeature.NewHandler(userService)
-
+	hub := &ws.ChatHub{
+		Clients:    make(map[*websocket.Conn]string),
+		Broadcast:  make(chan ws.ChatMessage),
+		Register:   make(chan ws.ClientConnection),
+		Unregister: make(chan *websocket.Conn),
+	}
+	udpServer := &udp.NotificationServer{
+		Port: ":9091",
+	}
 	router := gin.Default()
 
 	router.Use(cors.New(cors.Config{
@@ -93,8 +105,11 @@ func main() {
 	protected.DELETE("/manga/:id", mangaHandler.Delete)
 
 	protected.POST("/admin/import/mangadex", mangaHandler.ImportFromMangaDex)
-
+	go hub.Run()
+	router.GET("/ws", ws.ServeWS(hub))
 	go tcp.StartTCPServer(":9090", db)
+	go udp.StartUDPServer(udpServer)
+	go grpc.StartGRPCServer()
 	// log.Println("TCP Progress Sync Server running on localhost:9090")
 
 	log.Println("API server running on http://localhost:8080")
