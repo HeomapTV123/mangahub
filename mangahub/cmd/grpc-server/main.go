@@ -1,7 +1,7 @@
 package main
 
 import (
-	internalgrpc "mangahub/internal/gRPC"
+	internalgrpc "mangahub/internal/grpc"
 )
 
 func main() {
