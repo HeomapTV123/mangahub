@@ -3,13 +3,15 @@ package auth
 import (
 	"net/http"
 
+	"mangahub/internal/udp"
 	"mangahub/pkg/models"
 
 	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
-	Service *Service
+	Service   *Service
+	udpServer *udp.NotificationServer
 }
 
 func NewHandler(service *Service) *Handler {

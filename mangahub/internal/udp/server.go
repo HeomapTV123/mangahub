@@ -17,16 +17,14 @@ func StartUDPServer(server *NotificationServer) {
 		fmt.Println("Error listening:", err)
 		return
 	}
-	defer conn.Close()
+
+	server.Conn = conn
 
 	fmt.Println("UDP Server listening on", server.Port)
-
-	go broadcastLoop(server, conn)
 
 	buffer := make([]byte, 1024)
 
 	for {
-		// Read from UDP
 		n, clientAddr, err := conn.ReadFromUDP(buffer)
 		if err != nil {
 			fmt.Println("Error reading:", err)
@@ -34,8 +32,9 @@ func StartUDPServer(server *NotificationServer) {
 		}
 
 		message := string(buffer[:n])
+
 		fmt.Printf("Received from %s: %s\n", clientAddr, message)
-		//register
+
 		if message == "register" {
 			registerClient(server, clientAddr)
 

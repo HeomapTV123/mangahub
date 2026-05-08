@@ -1,18 +1,24 @@
 package manga
 
 import (
+	"mangahub/internal/udp"
 	"mangahub/pkg/models"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
-	Service *Service
+	Service   *Service
+	udpServer *udp.NotificationServer
 }
 
-func NewHandler(service *Service) *Handler {
-	return &Handler{Service: service}
+func NewHandler(service *Service, udpServer *udp.NotificationServer) *Handler {
+	return &Handler{
+		Service:   service,
+		udpServer: udpServer,
+	}
 }
 
 func (h *Handler) GetAll(c *gin.Context) {
@@ -56,17 +62,32 @@ func (h *Handler) Create(c *gin.Context) {
 	var req models.CreateMangaRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid request body",
+		})
 		return
 	}
 
 	err := h.Service.CreateManga(req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "manga created"})
+	notif := udp.Notification{
+		Type:      "new_chapter",
+		MangaID:   req.ID,
+		Message:   req.Title + " updated!",
+		Timestamp: time.Now().Unix(),
+	}
+
+	udp.Broadcast(h.udpServer, notif)
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "manga created",
+	})
 }
 
 func (h *Handler) Update(c *gin.Context) {

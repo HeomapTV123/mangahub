@@ -41,13 +41,15 @@ func main() {
 			log.Fatal("failed to seed manga: ", err)
 		}
 	}
-
+	udpServer := &udp.NotificationServer{
+		Port: ":9091",
+	}
 	authService := auth.NewService(db)
 	authHandler := auth.NewHandler(authService)
 
 	mangaRepo := mangaFeature.NewRepository(db)
 	mangaService := mangaFeature.NewService(mangaRepo)
-	mangaHandler := mangaFeature.NewHandler(mangaService)
+	mangaHandler := mangaFeature.NewHandler(mangaService, udpServer)
 
 	userRepo := userFeature.NewRepository(db)
 	userService := userFeature.NewService(userRepo)
@@ -57,9 +59,6 @@ func main() {
 		Broadcast:  make(chan ws.ChatMessage),
 		Register:   make(chan ws.ClientConnection),
 		Unregister: make(chan *websocket.Conn),
-	}
-	udpServer := &udp.NotificationServer{
-		Port: ":9091",
 	}
 	router := gin.Default()
 
@@ -101,9 +100,9 @@ func main() {
 	protected.PUT("/users/progress", userHandler.UpdateProgress)
 
 	protected.POST("/manga", mangaHandler.Create)
+
 	protected.PUT("/manga/:id", mangaHandler.Update)
 	protected.DELETE("/manga/:id", mangaHandler.Delete)
-
 	protected.POST("/admin/import/mangadex", mangaHandler.ImportFromMangaDex)
 	go hub.Run()
 	router.GET("/ws", ws.ServeWS(hub))

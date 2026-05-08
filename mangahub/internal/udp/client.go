@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"time"
 )
 
 func registerClient(server *NotificationServer, addr *net.UDPAddr) {
@@ -17,7 +16,7 @@ func registerClient(server *NotificationServer, addr *net.UDPAddr) {
 	server.Clients = append(server.Clients, *addr)
 	fmt.Println("UDP Server Client registered:", addr)
 }
-func broadcast(server *NotificationServer, conn *net.UDPConn, notif Notification) {
+func Broadcast(server *NotificationServer, notif Notification) {
 	data, err := json.Marshal(notif)
 	if err != nil {
 		fmt.Println("JSON error:", err)
@@ -25,25 +24,11 @@ func broadcast(server *NotificationServer, conn *net.UDPConn, notif Notification
 	}
 
 	for _, client := range server.Clients {
-		_, err := conn.WriteToUDP(data, &client)
+		_, err := server.Conn.WriteToUDP(data, &client)
 		if err != nil {
 			fmt.Println("Send error:", err)
 		}
 	}
-}
-func broadcastLoop(server *NotificationServer, conn *net.UDPConn) {
-	for {
-		time.Sleep(10 * time.Second)
 
-		notif := Notification{
-			Type:      "new_chapter",
-			MangaID:   "naruto",
-			Message:   "Naruto Chapter 700 released!",
-			Timestamp: time.Now().Unix(),
-		}
-
-		broadcast(server, conn, notif)
-
-		fmt.Println("[UDP] Broadcast sent to", len(server.Clients), "clients")
-	}
+	fmt.Println("[UDP] Notification broadcasted")
 }

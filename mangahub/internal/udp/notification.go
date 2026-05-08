@@ -5,6 +5,7 @@ import "net"
 type NotificationServer struct {
 	Port    string
 	Clients []net.UDPAddr
+	Conn    *net.UDPConn
 }
 type Notification struct {
 	Type      string `json:"type"`
