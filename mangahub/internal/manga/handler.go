@@ -133,7 +133,6 @@ func (h *Handler) Delete(c *gin.Context) {
 func (h *Handler) Search(c *gin.Context) {
 	minChapters := 0
 	maxChapters := 0
-
 	if minText := strings.TrimSpace(c.Query("min_chapters")); minText != "" {
 		value, err := strconv.Atoi(minText)
 		if err != nil {

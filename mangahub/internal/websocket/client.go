@@ -64,7 +64,7 @@ func HandleConnection(hub *ChatHub, conn *websocket.Conn, userID string, usernam
 	}
 
 	hub.Register <- client
-
+	fmt.Println("[WS] Connected:", username)
 	defer func() {
 		hub.Unregister <- client
 	}()
@@ -74,7 +74,7 @@ func HandleConnection(hub *ChatHub, conn *websocket.Conn, userID string, usernam
 
 		err := conn.ReadJSON(&msg)
 		if err != nil {
-			fmt.Println("[WS] Read error:", err)
+			fmt.Printf("[WS] Read error for %s: %v\n", username, err)
 			break
 		}
 

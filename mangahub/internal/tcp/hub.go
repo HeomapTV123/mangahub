@@ -34,7 +34,6 @@ func (h *Hub) RemoveClient(conn net.Conn) {
 	conn.Close()
 	log.Println("[TCP] client disconnected:", conn.RemoteAddr())
 }
-
 func (h *Hub) Broadcast(msg Message) {
 	h.mu.Lock()
 	defer h.mu.Unlock()

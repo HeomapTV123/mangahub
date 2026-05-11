@@ -124,7 +124,6 @@ func main() {
 	router.GET("/manga/:id", mangaHandler.GetByID)
 	router.GET("/manga/:id/reviews", reviewHandler.GetReviewsByMangaID)
 	router.GET("/manga/:id/reviews/summary", reviewHandler.GetReviewSummary)
-
 	protected := router.Group("/")
 	protected.Use(auth.AuthMiddleware())
 
@@ -136,12 +135,16 @@ func main() {
 
 	protected.POST("/manga/:id/reviews", reviewHandler.UpsertReview)
 	protected.DELETE("/manga/:id/reviews", reviewHandler.DeleteReview)
-
 	protected.PUT("/manga/:id", mangaHandler.Update)
 	protected.DELETE("/manga/:id", mangaHandler.Delete)
 	protected.POST("/admin/import/mangadex", mangaHandler.ImportFromMangaDex)
 	go hub.Run()
 	router.GET("/ws", ws.ServeWS(hub))
+	router.GET("/stats", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"active_users": hub.ActiveUsers(),
+		})
+	})
 	go tcp.StartTCPServer(":9090", db)
 	go udp.StartUDPServer(udpServer)
 	log.Println("[gRPC] starting from api-server...")

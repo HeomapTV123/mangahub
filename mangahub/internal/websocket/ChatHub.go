@@ -100,3 +100,12 @@ func (h *ChatHub) Run() {
 		}
 	}
 }
+func (h *ChatHub) ActiveUsers() int {
+	total := 0
+
+	for _, room := range h.Rooms {
+		total += len(room.Participants)
+	}
+
+	return total
+}
