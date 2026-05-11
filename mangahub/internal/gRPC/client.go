@@ -6,9 +6,9 @@ import (
 	"log"
 	"time"
 
-	"google.golang.org/grpc"
-
 	pb "mangahub/proto/mangahub/proto"
+
+	"google.golang.org/grpc"
 )
 
 func TestClient() {
