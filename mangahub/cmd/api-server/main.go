@@ -6,6 +6,7 @@ import (
 	"mangahub/internal/auth"
 	grpc "mangahub/internal/grpc"
 	mangaFeature "mangahub/internal/manga"
+	reviewFeature "mangahub/internal/review"
 	"mangahub/internal/tcp"
 	"mangahub/internal/udp"
 	userFeature "mangahub/internal/user"
@@ -14,7 +15,6 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 )
 
 func main() {
@@ -54,12 +54,12 @@ func main() {
 	userRepo := userFeature.NewRepository(db)
 	userService := userFeature.NewService(userRepo)
 	userHandler := userFeature.NewHandler(userService)
-	hub := &ws.ChatHub{
-		Clients:    make(map[*websocket.Conn]string),
-		Broadcast:  make(chan ws.ChatMessage),
-		Register:   make(chan ws.ClientConnection),
-		Unregister: make(chan *websocket.Conn),
-	}
+
+	reviewRepo := reviewFeature.NewRepository(db)
+	reviewService := reviewFeature.NewService(reviewRepo)
+	reviewHandler := reviewFeature.NewHandler(reviewService)
+
+	hub := ws.NewChatHub()
 	router := gin.Default()
 
 	router.Use(cors.New(cors.Config{
@@ -86,11 +86,44 @@ func main() {
 		})
 	})
 
+	router.GET("/health", func(c *gin.Context) {
+		if err := db.Ping(); err != nil {
+			c.JSON(500, gin.H{
+				"status": "unhealthy",
+				"services": gin.H{
+					"http":      "running",
+					"database":  "down",
+					"tcp":       "expected on :9090",
+					"udp":       "expected on :9091",
+					"grpc":      "expected on :50051",
+					"websocket": "available at /ws",
+				},
+				"error": err.Error(),
+			})
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"status": "healthy",
+			"services": gin.H{
+				"http":      "running on :8080",
+				"database":  "connected",
+				"tcp":       "running on :9090",
+				"udp":       "running on :9091",
+				"grpc":      "running on :50051",
+				"websocket": "available at /ws",
+			},
+		})
+	})
+
 	router.POST("/auth/register", authHandler.Register)
 	router.POST("/auth/login", authHandler.Login)
 
 	router.GET("/manga", mangaHandler.GetAll)
+	router.GET("/manga/search", mangaHandler.Search)
 	router.GET("/manga/:id", mangaHandler.GetByID)
+	router.GET("/manga/:id/reviews", reviewHandler.GetReviewsByMangaID)
+	router.GET("/manga/:id/reviews/summary", reviewHandler.GetReviewSummary)
 
 	protected := router.Group("/")
 	protected.Use(auth.AuthMiddleware())
@@ -100,6 +133,9 @@ func main() {
 	protected.PUT("/users/progress", userHandler.UpdateProgress)
 
 	protected.POST("/manga", mangaHandler.Create)
+
+	protected.POST("/manga/:id/reviews", reviewHandler.UpsertReview)
+	protected.DELETE("/manga/:id/reviews", reviewHandler.DeleteReview)
 
 	protected.PUT("/manga/:id", mangaHandler.Update)
 	protected.DELETE("/manga/:id", mangaHandler.Delete)

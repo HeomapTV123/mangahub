@@ -20,3 +20,12 @@ type CreateMangaRequest struct {
 	TotalChapters int      `json:"total_chapters"`
 	Description   string   `json:"description"`
 }
+
+type SearchFilters struct {
+	Keyword     string `json:"keyword"`
+	Genre       string `json:"genre"`
+	Status      string `json:"status"`
+	MinChapters int    `json:"min_chapters"`
+	MaxChapters int    `json:"max_chapters"`
+	SortBy      string `json:"sort_by"`
+}

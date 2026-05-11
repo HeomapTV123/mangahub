@@ -4,6 +4,8 @@ import (
 	"mangahub/internal/udp"
 	"mangahub/pkg/models"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -126,4 +128,54 @@ func (h *Handler) Delete(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "manga deleted"})
+}
+
+func (h *Handler) Search(c *gin.Context) {
+	minChapters := 0
+	maxChapters := 0
+
+	if minText := strings.TrimSpace(c.Query("min_chapters")); minText != "" {
+		value, err := strconv.Atoi(minText)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "min_chapters must be a number",
+			})
+			return
+		}
+		minChapters = value
+	}
+
+	if maxText := strings.TrimSpace(c.Query("max_chapters")); maxText != "" {
+		value, err := strconv.Atoi(maxText)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "max_chapters must be a number",
+			})
+			return
+		}
+		maxChapters = value
+	}
+
+	filters := models.SearchFilters{
+		Keyword:     c.Query("keyword"),
+		Genre:       c.Query("genre"),
+		Status:      c.Query("status"),
+		MinChapters: minChapters,
+		MaxChapters: maxChapters,
+		SortBy:      c.DefaultQuery("sort_by", "title"),
+	}
+
+	results, err := h.Service.SearchManga(filters)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"filters": filters,
+		"count":   len(results),
+		"manga":   results,
+	})
 }

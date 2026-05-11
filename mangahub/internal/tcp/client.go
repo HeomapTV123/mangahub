@@ -7,6 +7,7 @@ import (
 	"errors"
 	"log"
 	"net"
+	"strings"
 
 	"mangahub/internal/auth"
 )
@@ -44,6 +45,10 @@ func HandleClient(conn net.Conn, hub *Hub, db *sql.DB) {
 }
 
 func handleProgressUpdate(conn net.Conn, hub *Hub, db *sql.DB, msg Message) {
+
+	msg.Token = strings.TrimSpace(msg.Token)
+	msg.MangaID = strings.TrimSpace(msg.MangaID)
+	msg.Status = strings.TrimSpace(msg.Status)
 	userID, username, err := auth.ValidateJWT(msg.Token)
 	if err != nil {
 		log.Println("[TCP] auth error:", err)
@@ -63,6 +68,11 @@ func handleProgressUpdate(conn net.Conn, hub *Hub, db *sql.DB, msg Message) {
 
 	if msg.Status == "" {
 		msg.Status = "reading"
+	}
+
+	if !isValidTCPProgressStatus(msg.Status) {
+		send(conn, Message{Type: "error", Text: "status must be one of: plan_to_read, reading, completed, dropped"})
+		return
 	}
 
 	err = saveProgress(db, userID, msg.MangaID, msg.CurrentChapter, msg.Status)
@@ -121,5 +131,14 @@ func send(conn net.Conn, msg Message) {
 
 	if _, err := conn.Write(data); err != nil {
 		log.Println("[TCP] send error:", err)
+	}
+}
+
+func isValidTCPProgressStatus(status string) bool {
+	switch status {
+	case "plan_to_read", "reading", "completed", "dropped":
+		return true
+	default:
+		return false
 	}
 }

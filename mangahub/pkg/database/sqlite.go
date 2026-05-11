@@ -58,6 +58,21 @@ func createTables(db *sql.DB) error {
 		PRIMARY KEY (user_id, manga_id)
 	);`
 
+	reviewTable := `
+	CREATE TABLE IF NOT EXISTS reviews (
+	user_id TEXT NOT NULL,
+	manga_id TEXT NOT NULL,
+	rating INTEGER NOT NULL,
+	text TEXT,
+	timestamp INTEGER NOT NULL,
+	helpful INTEGER DEFAULT 0,
+	PRIMARY KEY (user_id, manga_id)
+	);`
+
+	if _, err := db.Exec(reviewTable); err != nil {
+		return err
+	}
+
 	if _, err := db.Exec(usersTable); err != nil {
 		return err
 	}
